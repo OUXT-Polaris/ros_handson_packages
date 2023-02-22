@@ -3,7 +3,8 @@
 namespace tutorial
 {
 
-Publish::Publish()
+Publish::Publish(const rclcpp::NodeOptions & options)
+: rclcpp::Node("publish", options)
 {
 }
 
