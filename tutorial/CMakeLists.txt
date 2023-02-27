@@ -11,6 +11,8 @@ ament_auto_find_build_dependencies()
 
 ament_auto_add_library(subscribe src/subscribe.cpp)
 ament_auto_add_library(publish src/publish.cpp)
+ament_auto_add_executable(pub_sub_node src/pub_sub_node.cpp)
+target_link_libraries(pub_sub_node subscribe publish)
 
 install(
   DIRECTORY include/

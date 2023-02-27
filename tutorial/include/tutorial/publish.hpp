@@ -1,5 +1,5 @@
-#ifndef TUTORIAL__SUBSCRIBE_HPP_
-#define TUTORIAL__SUBSCRIBE_HPP_
+#ifndef TUTORIAL__PUBLISH_HPP_
+#define TUTORIAL__PUBLISH_HPP_
 
 #include "tutorial/visibility_control.h"
 #include <rclcpp/rclcpp.hpp>
@@ -29,4 +29,4 @@ private:
 
 }  // namespace tutorial
 
-#endif  // TUTORIAL__SUBSCRIBE_HPP_
+#endif  // TUTORIAL__PUBLISH_HPP_
