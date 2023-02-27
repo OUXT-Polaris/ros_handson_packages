@@ -1,4 +1,5 @@
 #include "tutorial/subscribe.hpp"
+#include <rclcpp_components/register_node_macro.hpp>
 
 namespace tutorial
 {
@@ -20,5 +21,6 @@ Subscribe::Subscribe(const rclcpp::NodeOptions & options)
 Subscribe::~Subscribe()
 {
 }
-
 }  // namespace tutorial
+
+RCLCPP_COMPONENTS_REGISTER_NODE(tutorial::Subscribe)
