@@ -17,10 +17,12 @@ public:
   // コンストラクタの引数は必ず「const rclcpp::NodeOptions & options」でなければならない
   explicit Subscribe(const rclcpp::NodeOptions & options);
 
+  // virtualなデストラクタを定義（参照：https://www.yunabe.jp/docs/cpp_virtual_destructor.html）
   virtual ~Subscribe();
 
 private:
   // Subscriber（データ受信器）の共有ポインタ
+  // データ型はstd_msgs/msg/String型（https://github.com/ros2/common_interfaces/blob/rolling/std_msgs/msg/String.msg）
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr sub_;
 };
 

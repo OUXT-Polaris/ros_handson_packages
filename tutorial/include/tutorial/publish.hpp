@@ -17,10 +17,14 @@ public:
   // コンストラクタの引数は必ず「const rclcpp::NodeOptions & options」でなければならない
   explicit Publish(const rclcpp::NodeOptions & options);
 
+  // virtualなデストラクタを定義（参照：https://www.yunabe.jp/docs/cpp_virtual_destructor.html）
   virtual ~Publish();
 
 private:
-
+  // Publisher（データ送信器）の共有ポインタ
+  // データ型はstd_msgs/msg/String型（https://github.com/ros2/common_interfaces/blob/rolling/std_msgs/msg/String.msg）
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
+  rclcpp::TimerBase::SharedPtr timer_;
 };
 
 }  // namespace tutorial

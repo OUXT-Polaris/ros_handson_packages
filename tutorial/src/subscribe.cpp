@@ -6,7 +6,7 @@ namespace tutorial
 Subscribe::Subscribe(const rclcpp::NodeOptions & options)
 : rclcpp::Node("subscribe", options) // メンバ初期化子リストで基底型であるrclcpp::Node型を初期化
 {
-  // subscriberにラムダ式で定義したコールバック関数を引き渡す
+  // ラムダ式で定義したコールバック関数を引き渡し、subscriberをインスタンス化したのちその共有ポインタを返すcreate_subscription関数を実行
   sub_ = create_subscription<std_msgs::msg::String>(
     // 第一引数はトピック名、第二引数は受信バッファのサイズ
     // 第三引数はコールバックのラムダ式、thisキャプチャしておけばこのクラスのメンバ変数、メンバ関数にアクセスできる
