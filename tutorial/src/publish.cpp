@@ -4,6 +4,7 @@
 namespace tutorial
 {
 
+// コンストラクタ
 Publish::Publish(const rclcpp::NodeOptions & options)
 : rclcpp::Node("publish", options) // メンバ初期化子リストで基底型であるrclcpp::Node型を初期化
 {
@@ -26,10 +27,12 @@ Publish::Publish(const rclcpp::NodeOptions & options)
     });
 }
 
+// デストラクタ
 Publish::~Publish()
 {
 }
 
 }  // namespace tutorial
 
+// turtorial::Publishクラスをコンポーネントとして登録
 RCLCPP_COMPONENTS_REGISTER_NODE(tutorial::Publish)

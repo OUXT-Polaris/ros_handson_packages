@@ -4,6 +4,7 @@
 namespace tutorial
 {
 
+// コンストラクタ
 Subscribe::Subscribe(const rclcpp::NodeOptions & options)
 : rclcpp::Node("subscribe", options) // メンバ初期化子リストで基底型であるrclcpp::Node型を初期化
 {
@@ -18,9 +19,11 @@ Subscribe::Subscribe(const rclcpp::NodeOptions & options)
     });
 }
 
+// デストラクタ
 Subscribe::~Subscribe()
 {
 }
 }  // namespace tutorial
 
+// turtorial::Subscribeクラスをコンポーネントとして登録
 RCLCPP_COMPONENTS_REGISTER_NODE(tutorial::Subscribe)
