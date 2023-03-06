@@ -1,0 +1,9 @@
+<launch>
+  <!-- component container(動的にノードを載せられるExecutor)を用意 -->
+  <node_container pkg="rclcpp_components" exec="component_container_mt" name="pub_sub_container" namespace="pub_sub" args="">
+    <composable_node pkg="tutorial" plugin="tutorial::Publish" name="pub_node">
+    </composable_node>
+    <composable_node pkg="tutorial" plugin="tutorial::Subscribe" name="sub_node">
+    </composable_node>
+  </node_container>
+</launch>

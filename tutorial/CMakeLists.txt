@@ -28,6 +28,12 @@ ament_auto_add_executable(pub_sub_node
   src/publish.cpp
   src/subscribe.cpp)
 
+# launchファイルをインストール（ament_package_indexが探せる場所に置く）
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
