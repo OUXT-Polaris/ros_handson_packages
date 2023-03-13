@@ -14,6 +14,8 @@
 
 #include "braitenberg_vehicle/braitenberg_vehicle_controller.hpp"
 
+#include <limits>
+
 namespace braitenberg_vehicle
 {
 
@@ -69,5 +71,21 @@ void BraitenbergVehicleController::timer_callback()
     twist_pub_->publish(geometry_msgs::msg::Twist());
   }
   mutex_.unlock();
+}
+
+double BraitenbergVehicleController::emulate_light_sensor(double x_offset, double y_offset) const
+{
+  constexpr auto e = std::numeric_limits<double>::epsilon();
+  if (goal_pose_) {
+    if (const auto distance =
+          std::hypot(goal_pose_->position.x - x_offset, goal_pose_->position.y - y_offset);
+        std::abs(distance) < e)
+      return 1 / distance;
+    else {
+      return 1;
+    }
+  } else {
+    return 0;
+  }
 }
 }  // namespace braitenberg_vehicle

@@ -76,6 +76,8 @@ private:
   std::mutex mutex_;
   // 運動モデルを計算するクラス
   MotionModel motion_model_;
+  // ゴール地点を光源として扱うための仮想センサ入力を計算するためのクラス
+  double emulate_light_sensor(double x_offset, double y_offset) const;
 };
 
 }  // namespace braitenberg_vehicle
