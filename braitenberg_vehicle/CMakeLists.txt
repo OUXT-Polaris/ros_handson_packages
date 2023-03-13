@@ -12,7 +12,8 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 ament_auto_add_library(braitenberg_vehicle_controller
-  src/braitenberg_vehicle_controller.cpp)
+  src/braitenberg_vehicle_controller.cpp
+  src/motion_model.cpp)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

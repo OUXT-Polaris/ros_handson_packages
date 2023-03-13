@@ -28,12 +28,11 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
   twist_pub_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
   // subscriptionを作る関数、テンプレート引数はメッセージ型、第一引数はtopic名、第二引数は受信バッファサイズ、第三引数にコールバック関数を登録
   scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(
-    "/scan", 1, [this](const sensor_msgs::msg::LaserScan::SharedPtr scan) {scan_callback(scan);});
+    "/scan", 1, [this](const sensor_msgs::msg::LaserScan::SharedPtr scan) { scan_callback(scan); });
   // subscriptionを作る関数、テンプレート引数はメッセージ型、第一引数はtopic名、第二引数は受信バッファサイズ、第三引数にコールバック関数を登録
   goal_pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
-    "/goal_pose", 1, [this](const geometry_msgs::msg::PoseStamped::SharedPtr pose) {
-      goal_pose_callback(pose);
-    });
+    "/goal_pose", 1,
+    [this](const geometry_msgs::msg::PoseStamped::SharedPtr pose) { goal_pose_callback(pose); });
 }
 
 BraitenbergVehicleController::~BraitenbergVehicleController() {}

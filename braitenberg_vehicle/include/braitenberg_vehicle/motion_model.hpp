@@ -15,8 +15,19 @@
 #ifndef BRAITENBERG_VEHICLE__MOTION_MODEL_HPP_
 #define BRAITENBERG_VEHICLE__MOTION_MODEL_HPP_
 
+#include <geometry_msgs/msg/twist.hpp>
+
 namespace braitenberg_vehicle
 {
+class MotionModel
+{
+public:
+  explicit MotionModel(double wheel_radius, double wheel_base);
+  const double wheel_radius;
+  const double wheel_base;
+  geometry_msgs::msg::Twist get_twist(
+    double left_wheel_rotational_speed, double right_wheel_rotational_speed) const;
+};
 }  // namespace braitenberg_vehicle
 
 #endif  // BRAITENBERG_VEHICLE__MOTION_MODEL_HPP_

@@ -15,14 +15,13 @@
 #ifndef BRAITENBERG_VEHICLE__BRAITENBERG_VEHICLE_CONTROLLER_HPP_
 #define BRAITENBERG_VEHICLE__BRAITENBERG_VEHICLE_CONTROLLER_HPP_
 
-#include <optional>
-#include <mutex>
-#include <string>
-
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <mutex>
+#include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
+#include <string>
 
 #include "braitenberg_vehicle/visibility_control.h"
 
@@ -39,7 +38,7 @@ public:
 
 private:
   // パラメータを取得するためのテンプレート関数、第一引数はパラメータ名、第二引数はデフォルト値
-  template<typename T>
+  template <typename T>
   auto get_parameter(const std::string & name, const T & default_value) -> T
   {
     // 取得したいパラメータが宣言済みかを確認
