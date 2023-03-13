@@ -23,6 +23,11 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
 : rclcpp::Node("braitenberg_vehicle_controller", options),
   // "base_link_frame_id"パラメータを読み込み、メンバ変数にセット
   base_link_frame_id_(get_parameter("base_link_frame_id", std::string("base_link"))),
+  //　パラメータから仮想光センサの取り付け位置を読み込み
+  virtual_light_sensor_position_x_offset_(
+    get_parameter("virtual_light_sensor_position_x_offset", 0.1)),
+  virtual_light_sensor_position_y_offset_(
+    get_parameter("virtual_light_sensor_position_y_offset", 0.1)),
   motion_model_(
     // "wheel_radius"パラメータを読み込みメンバ変数にセット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
     get_parameter("wheel_radius", 0.033),
@@ -69,9 +74,13 @@ void BraitenbergVehicleController::timer_callback()
   if (goal_pose_) {
     twist_pub_->publish(motion_model_.get_twist(
       // 左側の車輪には右側の仮想光センサの出力を入力
-      emulate_light_sensor(0.1, -0.1),
+      // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
+      emulate_light_sensor(
+        virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_ * -1),
       // 右側の車輪には左側の仮想光センサの出力を入力
-      emulate_light_sensor(0.1, 0.1)));
+      // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
+      emulate_light_sensor(
+        virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_)));
   } else {
     twist_pub_->publish(geometry_msgs::msg::Twist());
   }
