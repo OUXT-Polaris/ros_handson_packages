@@ -67,24 +67,45 @@ void BraitenbergVehicleController::timer_callback()
 {
   mutex_.lock();
   if (goal_pose_) {
+    twist_pub_->publish(motion_model_.get_twist(
+      // 左側の車輪には右側の仮想光センサの出力を入力
+      emulate_light_sensor(0.1, -0.1),
+      // 右側の車輪には左側の仮想光センサの出力を入力
+      emulate_light_sensor(0.1, 0.1)));
   } else {
     twist_pub_->publish(geometry_msgs::msg::Twist());
   }
   mutex_.unlock();
 }
 
+// ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数
 double BraitenbergVehicleController::emulate_light_sensor(double x_offset, double y_offset) const
 {
+  // constexprをつけることで変数eはコンパイル時に計算され定数となるので実行時の計算コストを減らすことができる（https://cpprefjp.github.io/lang/cpp11/constexpr.html）
+  // std::numeric_limits<double>::epsilon();はdouble型の計算機イプシロン（処理系が取り扱える浮動小数点の誤差幅）である（https://cpprefjp.github.io/reference/limits/numeric_limits/epsilon.html）
+  // 浮動小数点型に対して一致を計算する場合には「==演算子」を用いてはならない、計算機イプシロンを考慮して計算する必要がある
+  // 例えば、float a = 3.0;したときにa=3であることを確認するには以下のように記述する必要がある
+  // constexpr auto e = std::numeric_limits<float>::epsilon();
+  // float a = 3.0;
+  // if(std::abs(a - 3.0) <= e) { /* a = 3.0のときの処理 */ }
   constexpr auto e = std::numeric_limits<double>::epsilon();
+  // 有効なゴール指定がされているかどうかを判定
   if (goal_pose_) {
+    // 有効なゴール姿勢がある場合
+    // (goal_pose_->position.x - x_offset)^2 + (goal_pose_->position.y - y_offset)^2の平方根を計算して二点間の距離を求める
     if (const auto distance =
           std::hypot(goal_pose_->position.x - x_offset, goal_pose_->position.y - y_offset);
-        std::abs(distance) < e)
-      return 1 / distance;
-    else {
+        // 距離の絶対値が計算機イプシロンより小さい、つまりdistance = 0.0の場合
+        std::abs(distance) <= e)
+      // ゼロ割を回避しつつセンサの出力値を最大にしたいので1を返す
       return 1;
+    else {
+      // センサの出力は距離に反比例する。
+      return 1 / distance;
+      ;
     }
   } else {
+    // 有効なゴール姿勢がない場合、その場で停止するコマンドを発行するために光源センサの出力を0にする。
     return 0;
   }
 }
