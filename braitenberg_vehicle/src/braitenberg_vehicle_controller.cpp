@@ -18,12 +18,15 @@ namespace braitenberg_vehicle
 {
 
 BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOptions & options)
-: rclcpp::Node("braitenberg_vehicle_controller", options)
-{
-  // "wheel_radius"パラメータを読み込みメンバ変数にセット
-  wheel_radius_ = get_parameter("wheel_radius", 0.033);
+: rclcpp::Node("braitenberg_vehicle_controller", options),
   // "base_link_frame_id"パラメータを読み込み、メンバ変数にセット
-  base_link_frame_id_ = get_parameter("base_link_frame_id", std::string("base_link"));
+  base_link_frame_id_(get_parameter("base_link_frame_id", std::string("base_link"))),
+  motion_model_(
+    // "wheel_radius"パラメータを読み込みメンバ変数にセット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
+    get_parameter("wheel_radius", 0.033),
+    // "wheel_base"パラメータを読み込みメンバ変数二セット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
+    get_parameter("wheel_base", 0.16))
+{
   // publisherを作る関数、テンプレート引数はメッセージ型、第一引数はtopic名、第二引数は送信バッファサイズ
   twist_pub_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
   // subscriptionを作る関数、テンプレート引数はメッセージ型、第一引数はtopic名、第二引数は受信バッファサイズ、第三引数にコールバック関数を登録

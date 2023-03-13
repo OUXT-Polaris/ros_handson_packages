@@ -23,8 +23,11 @@ class MotionModel
 {
 public:
   explicit MotionModel(double wheel_radius, double wheel_base);
+  // ホイール半径、constなメンバ変数なのでメンバ初期化子リストで初期化後うわがくことはできない
   const double wheel_radius;
+  // ホイールベース、constなメンバ変数なのでメンバ初期化子リストで初期化後うわがくことはできない
   const double wheel_base;
+  // 車輪の回転速を入力すると速度を返す関数、関数の後についているconstはこの関数が副作用が無いことをコンパイラに伝えている。
   geometry_msgs::msg::Twist get_twist(
     double left_wheel_rotational_speed, double right_wheel_rotational_speed) const;
 };

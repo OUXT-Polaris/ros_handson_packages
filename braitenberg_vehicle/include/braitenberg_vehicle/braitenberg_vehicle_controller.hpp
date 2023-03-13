@@ -15,6 +15,7 @@
 #ifndef BRAITENBERG_VEHICLE__BRAITENBERG_VEHICLE_CONTROLLER_HPP_
 #define BRAITENBERG_VEHICLE__BRAITENBERG_VEHICLE_CONTROLLER_HPP_
 
+#include <braitenberg_vehicle/motion_model.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <mutex>
@@ -65,16 +66,16 @@ private:
   // ゴール地点受信前の状態を表現するためstd::optionalを用いて無効値を表現
   // https://cpprefjp.github.io/reference/optional/optional.html
   std::optional<geometry_msgs::msg::Pose> goal_pose_;
-  // ホイールの半径を記録するメンバ変数
-  double wheel_radius_;
   // ベースリンクのframe_idを記録するメンバ変数
-  std::string base_link_frame_id_;
+  const std::string base_link_frame_id_;
   // 制御コマンド更新のためのタイマー
   rclcpp::TimerBase::SharedPtr timer_;
   // 一定時間ごとに刻まれるタイマーのコールバック
   void timer_callback();
   // データ同期用のmutex
   std::mutex mutex_;
+  // 運動モデルを計算するクラス
+  MotionModel motion_model_;
 };
 
 }  // namespace braitenberg_vehicle
