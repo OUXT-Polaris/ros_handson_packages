@@ -1,4 +1,5 @@
 #include "tutorial/publish.hpp"
+
 #include <rclcpp_components/register_node_macro.hpp>
 
 namespace tutorial
@@ -6,7 +7,7 @@ namespace tutorial
 
 // コンストラクタ
 Publish::Publish(const rclcpp::NodeOptions & options)
-: rclcpp::Node("publish", options) // メンバ初期化子リストで基底型であるrclcpp::Node型を初期化
+: rclcpp::Node("publish", options)  // メンバ初期化子リストで基底型であるrclcpp::Node型を初期化
 {
   RCLCPP_INFO_STREAM(get_logger(), "start initializing publisher");
   // create_publisher関数でpublisherをインスタンス化、第一引数がトピック名、第二引数が送信バッファのサイズ
@@ -28,9 +29,7 @@ Publish::Publish(const rclcpp::NodeOptions & options)
 }
 
 // デストラクタ
-Publish::~Publish()
-{
-}
+Publish::~Publish() {}
 
 }  // namespace tutorial
 

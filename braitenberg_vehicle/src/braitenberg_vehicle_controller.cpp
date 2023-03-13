@@ -6,18 +6,15 @@ namespace braitenberg_vehicle
 BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOptions & options)
 : rclcpp::Node("braitenberg_vehicle_controller", options)
 {
+  wheel_radius_ = get_parameter("wheel_radius", 0.033);
   twist_pub_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
   scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(
-    "/scan", 1, [this](const sensor_msgs::msg::LaserScan::SharedPtr scan) {
-      scan_callback(scan);
-    });
+    "/scan", 1, [this](const sensor_msgs::msg::LaserScan::SharedPtr scan) {scan_callback(scan);});
 }
 
-BraitenbergVehicleController::~BraitenbergVehicleController()
-{
-}
+BraitenbergVehicleController::~BraitenbergVehicleController() {}
 
-void BraitenbergVehicleController::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr /*scan*/)
+void BraitenbergVehicleController::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr scan)
 {
 }
 

@@ -1,4 +1,5 @@
 #include "tutorial/subscribe.hpp"
+
 #include <rclcpp_components/register_node_macro.hpp>
 
 namespace tutorial
@@ -6,7 +7,7 @@ namespace tutorial
 
 // コンストラクタ
 Subscribe::Subscribe(const rclcpp::NodeOptions & options)
-: rclcpp::Node("subscribe", options) // メンバ初期化子リストで基底型であるrclcpp::Node型を初期化
+: rclcpp::Node("subscribe", options)  // メンバ初期化子リストで基底型であるrclcpp::Node型を初期化
 {
   RCLCPP_INFO_STREAM(get_logger(), "start initializing subscriber");
   // ラムダ式で定義したコールバック関数を引き渡し、subscriberをインスタンス化したのちその共有ポインタを返すcreate_subscription関数を実行
@@ -20,9 +21,7 @@ Subscribe::Subscribe(const rclcpp::NodeOptions & options)
 }
 
 // デストラクタ
-Subscribe::~Subscribe()
-{
-}
+Subscribe::~Subscribe() {}
 }  // namespace tutorial
 
 // turtorial::Subscribeクラスをコンポーネントとして登録

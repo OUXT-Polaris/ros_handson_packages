@@ -1,9 +1,10 @@
 #ifndef TUTORIAL__PUBLISH_HPP_
 #define TUTORIAL__PUBLISH_HPP_
 
-#include "tutorial/visibility_control.h"
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
+
+#include "tutorial/visibility_control.h"
 
 namespace tutorial
 {
