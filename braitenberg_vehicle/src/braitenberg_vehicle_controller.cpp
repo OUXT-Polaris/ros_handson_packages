@@ -64,6 +64,10 @@ void BraitenbergVehicleController::goal_pose_callback(
 void BraitenbergVehicleController::timer_callback()
 {
   mutex_.lock();
+  if (goal_pose_) {
+  } else {
+    twist_pub_->publish(geometry_msgs::msg::Twist());
+  }
   mutex_.unlock();
 }
 }  // namespace braitenberg_vehicle
