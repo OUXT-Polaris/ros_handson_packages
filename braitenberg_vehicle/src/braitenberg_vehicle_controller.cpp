@@ -43,6 +43,8 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
   goal_pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
     "/goal_pose", 1,
     [this](const geometry_msgs::msg::PoseStamped::SharedPtr pose) { goal_pose_callback(pose); });
+  using namespace std::chrono_literals;
+  timer_ = create_wall_timer(1ms, [this]() { timer_callback(); });
 }
 
 BraitenbergVehicleController::~BraitenbergVehicleController() {}
