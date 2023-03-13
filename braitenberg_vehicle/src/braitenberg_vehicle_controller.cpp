@@ -43,7 +43,9 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
   goal_pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
     "/goal_pose", 1,
     [this](const geometry_msgs::msg::PoseStamped::SharedPtr pose) { goal_pose_callback(pose); });
+  // std::chronoに登録されたリテラルを用いて時間を人間的な書式で記載できるようにする
   using namespace std::chrono_literals;
+  // BraitenbergVehicleController::timer_callback関数を1msに一回実行する関数として登録
   timer_ = create_wall_timer(1ms, [this]() { timer_callback(); });
 }
 
