@@ -97,8 +97,6 @@ private:
   tf2_ros::Buffer buffer_;
   // tf(座標系解決のためのトピック)を受信するためのクラス
   tf2_ros::TransformListener listener_;
-  //　ゴールに到達したかを判定する関数
-  bool goal_reached() const;
 };
 
 }  // namespace braitenberg_vehicle

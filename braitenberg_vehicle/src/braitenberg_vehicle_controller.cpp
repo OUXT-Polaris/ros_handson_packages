@@ -117,14 +117,6 @@ void BraitenbergVehicleController::timer_callback()
   // クリティカルセクション開始
   mutex_.lock();
   if (goal_pose_) {
-    if (goal_reached()) {
-      // 有効なゴール指定がされていない場合、その場で停止
-      twist_pub_->publish(geometry_msgs::msg::Twist());
-      goal_pose_ = std::nullopt;
-      // クリティカルセクション終了
-      mutex_.unlock();
-      return;
-    }
     // 座標変換結果を格納する一時変数
     geometry_msgs::msg::PoseStamped p;
     try {
@@ -178,6 +170,7 @@ void BraitenbergVehicleController::timer_callback()
 double BraitenbergVehicleController::emulate_light_sensor(
   double x_offset, double y_offset, const geometry_msgs::msg::Point & goal_point) const
 {
+  // base_linkでみたときのゴールのx座標仮想光センサのx座標より小さい場合、後ろから光は入ってこないので0を出力する
   if (goal_point.x < x_offset) {
     return 0;
   }
@@ -198,39 +191,7 @@ double BraitenbergVehicleController::emulate_light_sensor(
     return 1;
   else {
     // センサの出力は距離に反比例する。
-    return std::clamp(1 / distance, 0.0, 1.0);
-  }
-}
-
-bool BraitenbergVehicleController::goal_reached() const
-{
-  if (goal_pose_) {
-    // 座標変換結果を格納する一時変数
-    geometry_msgs::msg::PoseStamped p;
-    try {
-      // 座標変換を実行
-      tf2::doTransform(
-        // 第一引数は変換したい姿勢を入力、第二引数には変換結果を格納する姿勢を入力
-        goal_pose_.value(), p,
-        // 同次変換行列計算に必要な情報をtfのバッファから計算
-        // odom_frame_id_(オドメトリ座標系)->base_link_frame_id_(ロボット座標系)の相対座標系を計算
-        // 第三引数はいつの時点の座標変換を取得したいか、rclcpp::Time(0)とすると最新の相対座標系が計算される
-        // 第四引数はウェイトの最大時間、tfは分散座標系管理を行うためウェイトが短すぎると受信に失敗する可能性がある
-        buffer_.lookupTransform(
-          base_link_frame_id_, odom_frame_id_, rclcpp::Time(0), tf2::durationFromSec(1.0)));
-      if (std::hypot(p.pose.position.x, p.pose.position.y) < goal_distance_threashold_) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-    // 座標変換が失敗したときの例外処理
-    catch (tf2::ExtrapolationException & ex) {
-      RCLCPP_ERROR(get_logger(), ex.what());
-      return false;
-    }
-  } else {
-    return false;
+    return std::clamp(1 / (distance * distance), 0.0, 1.0);
   }
 }
 }  // namespace braitenberg_vehicle
