@@ -80,8 +80,8 @@ private:
   const double virtual_light_sensor_position_y_offset_;
   // 仮想光センサ出力をモータ回転数に変換するときの係数
   const double virtual_light_sensor_gain_;
-  // ゴールまでの距離がこのしきい値以下になった時にゴールに到達舌と判断する
-  const double goal_distance_threashold_;
+  // 仮想光センサの視角（rad）
+  const double virtual_light_sensor_viewing_angle_;
   // 制御コマンド更新のためのタイマー
   rclcpp::TimerBase::SharedPtr timer_;
   // 一定時間ごとに刻まれるタイマーのコールバック

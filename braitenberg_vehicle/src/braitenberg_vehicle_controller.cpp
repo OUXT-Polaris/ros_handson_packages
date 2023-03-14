@@ -38,8 +38,8 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
     get_ros2_parameter("virtual_light_sensor_position_y_offset", 3.0)),
   // パラメータから仮想光センサ出力をモータ回転数に変換するときの係数を読み込み
   virtual_light_sensor_gain_(get_ros2_parameter("virtual_light_sensor_gain", 100.0)),
-  // パラメータからゴール到達判定のしきい値を取得
-  goal_distance_threashold_(get_ros2_parameter("goal_distance_threashold", 0.5)),
+  virtual_light_sensor_viewing_angle_(
+    get_ros2_parameter("virtual_light_sensor_viewing_angle", M_PI)),
   // motiom_modelクラスを初期化
   motion_model_(
     // "wheel_radius"パラメータを読み込みメンバ変数にセット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
@@ -170,8 +170,10 @@ void BraitenbergVehicleController::timer_callback()
 double BraitenbergVehicleController::emulate_light_sensor(
   double x_offset, double y_offset, const geometry_msgs::msg::Point & goal_point) const
 {
-  // base_linkでみたときのゴールのx座標仮想光センサのx座標より小さい場合、後ろから光は入ってこないので0を出力する
-  if (goal_point.x < x_offset) {
+  // goal_pointが視界に入っているかを判定、入っていない場合は0を出力
+  if (
+    std::abs(std::atan2(goal_point.y - y_offset, goal_point.x - x_offset)) >=
+    virtual_light_sensor_viewing_angle_ * 0.5) {
     return 0;
   }
   // constexprをつけることで変数eはコンパイル時に計算され定数となるので実行時の計算コストを減らすことができる（https://cpprefjp.github.io/lang/cpp11/constexpr.html）
