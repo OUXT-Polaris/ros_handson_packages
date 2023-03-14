@@ -35,7 +35,7 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
   virtual_light_sensor_position_x_offset_(
     get_ros2_parameter("virtual_light_sensor_position_x_offset", 0.1)),
   virtual_light_sensor_position_y_offset_(
-    get_ros2_parameter("virtual_light_sensor_position_y_offset", 0.1)),
+    get_ros2_parameter("virtual_light_sensor_position_y_offset", 3.0)),
   motion_model_(
     // "wheel_radius"パラメータを読み込みメンバ変数にセット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
     get_ros2_parameter("wheel_radius", 0.033),
@@ -77,7 +77,7 @@ void BraitenbergVehicleController::goal_pose_callback(
   // 受信したゴール姿勢のframe_id(座標系の名前)が適切なものかを確認
   if (pose->header.frame_id == odom_frame_id_) {
     // 適切な場合は、goal_pose_に受信したposeを代入
-    goal_pose_ = pose->pose;
+    goal_pose_ = *pose;
   } else {
     // 不適切な場合は、odom座標系に座標変換
     try {
@@ -93,7 +93,7 @@ void BraitenbergVehicleController::goal_pose_callback(
         // 第四引数はウェイトの最大時間、tfは分散座標系管理を行うためウェイトが短すぎると受信に失敗する可能性がある
         buffer_.lookupTransform(
           odom_frame_id_, pose->header.frame_id, rclcpp::Time(0), tf2::durationFromSec(1.0)));
-      goal_pose_ = p.pose;
+      goal_pose_ = p;
     }
     // 座標変換が失敗したときの例外処理
     catch (tf2::ExtrapolationException & ex) {
@@ -111,17 +111,44 @@ void BraitenbergVehicleController::timer_callback()
   // クリティカルセクション開始
   mutex_.lock();
   if (goal_pose_) {
-    twist_pub_->publish(
-      // モーションモデルを計算して、速度司令を計算
-      motion_model_.get_twist(
-        // 左側の車輪には右側の仮想光センサの出力を入力
-        // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
-        emulate_light_sensor(
-          virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_ * -1),
-        // 右側の車輪には左側の仮想光センサの出力を入力
-        // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
-        emulate_light_sensor(
-          virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_)));
+    // 座標変換結果を格納する一時変数
+    geometry_msgs::msg::PoseStamped p;
+    try {
+      // 座標変換を実行
+      tf2::doTransform(
+        // 第一引数は変換したい姿勢を入力、第二引数には変換結果を格納する姿勢を入力
+        goal_pose_.value(), p,
+        // 同次変換行列計算に必要な情報をtfのバッファから計算
+        // odom_frame_id_(オドメトリ座標系)->base_link_frame_id_(ロボット座標系)の相対座標系を計算
+        // 第三引数はいつの時点の座標変換を取得したいか、rclcpp::Time(0)とすると最新の相対座標系が計算される
+        // 第四引数はウェイトの最大時間、tfは分散座標系管理を行うためウェイトが短すぎると受信に失敗する可能性がある
+        buffer_.lookupTransform(
+          base_link_frame_id_, odom_frame_id_, rclcpp::Time(0), tf2::durationFromSec(1.0)));
+      // RCLCPP_ERROR_STREAM(
+      //   get_logger(), emulate_light_sensor(
+      //                   virtual_light_sensor_position_x_offset_,
+      //                   virtual_light_sensor_position_y_offset_ * -1, p.pose.position));
+      twist_pub_->publish(
+        // モーションモデルを計算して、速度司令を計算
+        motion_model_.get_twist(
+          // 左側の車輪には右側の仮想光センサの出力を入力
+          // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
+          100 * emulate_light_sensor(
+                  virtual_light_sensor_position_x_offset_,
+                  virtual_light_sensor_position_y_offset_ * -1, p.pose.position),
+          // 右側の車輪には左側の仮想光センサの出力を入力
+          // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
+          100 * emulate_light_sensor(
+                  virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_,
+                  p.pose.position)));
+    }
+    // 座標変換が失敗したときの例外処理
+    catch (tf2::ExtrapolationException & ex) {
+      RCLCPP_ERROR(get_logger(), ex.what());
+      // 座標変換に失敗した場合、その場で停止
+      twist_pub_->publish(geometry_msgs::msg::Twist());
+      return;
+    }
   } else {
     // 有効なゴール指定がされていない場合、その場で停止
     twist_pub_->publish(geometry_msgs::msg::Twist());
@@ -131,7 +158,11 @@ void BraitenbergVehicleController::timer_callback()
 }
 
 // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数
-double BraitenbergVehicleController::emulate_light_sensor(double x_offset, double y_offset) const
+// 第一引数のx_offsetはbase_linkからの仮想光センサのx座標
+// 第二引数のy_offsetはbase_linkからの仮想光センサのy座標
+// 第三引数のgoal_pointはbase_linkでみたときのゴール地点の座標
+double BraitenbergVehicleController::emulate_light_sensor(
+  double x_offset, double y_offset, const geometry_msgs::msg::Point & goal_point) const
 {
   // constexprをつけることで変数eはコンパイル時に計算され定数となるので実行時の計算コストを減らすことができる（https://cpprefjp.github.io/lang/cpp11/constexpr.html）
   // std::numeric_limits<double>::epsilon();はdouble型の計算機イプシロン（処理系が取り扱える浮動小数点の誤差幅）である（https://cpprefjp.github.io/reference/limits/numeric_limits/epsilon.html）
@@ -141,24 +172,16 @@ double BraitenbergVehicleController::emulate_light_sensor(double x_offset, doubl
   // float a = 3.0;
   // if(std::abs(a - 3.0) <= e) { /* a = 3.0のときの処理 */ }
   constexpr auto e = std::numeric_limits<double>::epsilon();
-  // 有効なゴール指定がされているかどうかを判定
-  if (goal_pose_) {
-    // 有効なゴール姿勢がある場合
-    // (goal_pose_->position.x - x_offset)^2 + (goal_pose_->position.y - y_offset)^2の平方根を計算して二点間の距離を求める
-    if (const auto distance =
-          std::hypot(goal_pose_->position.x - x_offset, goal_pose_->position.y - y_offset);
-        // 距離の絶対値が計算機イプシロンより小さい、つまりdistance = 0.0の場合
-        std::abs(distance) <= e)
-      // ゼロ割を回避しつつセンサの出力値を最大にしたいので1を返す
-      return 1;
-    else {
-      // センサの出力は距離に反比例する。
-      return std::clamp(1 / distance, 0.0, 1.0);
-      ;
-    }
-  } else {
-    // 有効なゴール姿勢がない場合、その場で停止するコマンドを発行するために光源センサの出力を0にする。
-    return 0;
+  // 有効なゴール姿勢がある場合
+  // (goal_point.x - x_offset)^2 + (goal_point.y - y_offset)^2の平方根を計算して二点間の距離を求める
+  if (const auto distance = std::hypot(goal_point.x - x_offset, goal_point.y - y_offset);
+      // 距離の絶対値が計算機イプシロンより小さい、つまりdistance = 0.0の場合
+      std::abs(distance) <= e)
+    // ゼロ割を回避しつつセンサの出力値を最大にしたいので1を返す
+    return 1;
+  else {
+    // センサの出力は距離に反比例する。
+    return std::clamp(1 / distance, 0.0, 1.0);
   }
 }
 }  // namespace braitenberg_vehicle

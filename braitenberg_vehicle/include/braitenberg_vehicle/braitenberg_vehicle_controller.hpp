@@ -69,7 +69,7 @@ private:
   // ゴール地点を記録するメンバ変数
   // ゴール地点受信前の状態を表現するためstd::optionalを用いて無効値を表現
   // https://cpprefjp.github.io/reference/optional/optional.html
-  std::optional<geometry_msgs::msg::Pose> goal_pose_;
+  std::optional<geometry_msgs::msg::PoseStamped> goal_pose_;
   // ベースリンクのframe_idを記録するメンバ変数
   const std::string base_link_frame_id_;
   // オドメトリのframe_idを記録するメンバ変数
@@ -87,7 +87,8 @@ private:
   // 運動モデルを計算するクラス
   MotionModel motion_model_;
   // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数
-  double emulate_light_sensor(double x_offset, double y_offset) const;
+  double emulate_light_sensor(
+    double x_offset, double y_offset, const geometry_msgs::msg::Point & goal_point) const;
   // tf(座標系解決のためのトピック)のデータを一体時間バッファするためのクラス
   tf2_ros::Buffer buffer_;
   // tf(座標系解決のためのトピック)を受信するためのクラス
