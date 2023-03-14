@@ -36,6 +36,11 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
     get_ros2_parameter("virtual_light_sensor_position_x_offset", 0.1)),
   virtual_light_sensor_position_y_offset_(
     get_ros2_parameter("virtual_light_sensor_position_y_offset", 3.0)),
+  // パラメータから仮想光センサ出力をモータ回転数に変換するときの係数を読み込み
+  virtual_light_sensor_gain_(get_ros2_parameter("virtual_light_sensor_gain", 100.0)),
+  // パラメータからゴール到達判定のしきい値を取得
+  goal_distance_threashold_(get_ros2_parameter("goal_distance_threashold", 0.5)),
+  // motiom_modelクラスを初期化
   motion_model_(
     // "wheel_radius"パラメータを読み込みメンバ変数にセット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
     get_ros2_parameter("wheel_radius", 0.033),
@@ -61,7 +66,8 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
 
 BraitenbergVehicleController::~BraitenbergVehicleController() {}
 
-void BraitenbergVehicleController::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr scan)
+void BraitenbergVehicleController::scan_callback(
+  const sensor_msgs::msg::LaserScan::SharedPtr /*scan*/)
 {
   // クリティカルセクション開始
   mutex_.lock();
@@ -124,23 +130,21 @@ void BraitenbergVehicleController::timer_callback()
         // 第四引数はウェイトの最大時間、tfは分散座標系管理を行うためウェイトが短すぎると受信に失敗する可能性がある
         buffer_.lookupTransform(
           base_link_frame_id_, odom_frame_id_, rclcpp::Time(0), tf2::durationFromSec(1.0)));
-      // RCLCPP_ERROR_STREAM(
-      //   get_logger(), emulate_light_sensor(
-      //                   virtual_light_sensor_position_x_offset_,
-      //                   virtual_light_sensor_position_y_offset_ * -1, p.pose.position));
       twist_pub_->publish(
         // モーションモデルを計算して、速度司令を計算
         motion_model_.get_twist(
           // 左側の車輪には右側の仮想光センサの出力を入力
           // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
-          100 * emulate_light_sensor(
-                  virtual_light_sensor_position_x_offset_,
-                  virtual_light_sensor_position_y_offset_ * -1, p.pose.position),
+          virtual_light_sensor_gain_ * emulate_light_sensor(
+                                         virtual_light_sensor_position_x_offset_,
+                                         virtual_light_sensor_position_y_offset_ * -1,
+                                         p.pose.position),
           // 右側の車輪には左側の仮想光センサの出力を入力
           // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
-          100 * emulate_light_sensor(
-                  virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_,
-                  p.pose.position)));
+          virtual_light_sensor_gain_ * emulate_light_sensor(
+                                         virtual_light_sensor_position_x_offset_,
+                                         virtual_light_sensor_position_y_offset_,
+                                         p.pose.position)));
     }
     // 座標変換が失敗したときの例外処理
     catch (tf2::ExtrapolationException & ex) {
@@ -182,6 +186,38 @@ double BraitenbergVehicleController::emulate_light_sensor(
   else {
     // センサの出力は距離に反比例する。
     return std::clamp(1 / distance, 0.0, 1.0);
+  }
+}
+
+bool BraitenbergVehicleController::goal_reached() const
+{
+  if (goal_pose_) {
+    // 座標変換結果を格納する一時変数
+    geometry_msgs::msg::PoseStamped p;
+    try {
+      // 座標変換を実行
+      tf2::doTransform(
+        // 第一引数は変換したい姿勢を入力、第二引数には変換結果を格納する姿勢を入力
+        goal_pose_.value(), p,
+        // 同次変換行列計算に必要な情報をtfのバッファから計算
+        // base_link_frame_id_(ロボット座標系)->odom_frame_id_(オドメトリ座標系)の相対座標系を計算
+        // 第三引数はいつの時点の座標変換を取得したいか、rclcpp::Time(0)とすると最新の相対座標系が計算される
+        // 第四引数はウェイトの最大時間、tfは分散座標系管理を行うためウェイトが短すぎると受信に失敗する可能性がある
+        buffer_.lookupTransform(
+          odom_frame_id_, base_link_frame_id_, rclcpp::Time(0), tf2::durationFromSec(1.0)));
+      if (std::hypot(p.pose.position.x, p.pose.position.y) < goal_distance_threashold_) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    // 座標変換が失敗したときの例外処理
+    catch (tf2::ExtrapolationException & ex) {
+      RCLCPP_ERROR(get_logger(), ex.what());
+      return false;
+    }
+  } else {
+    return false;
   }
 }
 }  // namespace braitenberg_vehicle

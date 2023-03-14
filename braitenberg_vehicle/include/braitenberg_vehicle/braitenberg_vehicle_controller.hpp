@@ -78,6 +78,10 @@ private:
   const double virtual_light_sensor_position_x_offset_;
   // 仮想光センサの取り付け位置を表すメンバ変数
   const double virtual_light_sensor_position_y_offset_;
+  // 仮想光センサ出力をモータ回転数に変換するときの係数
+  const double virtual_light_sensor_gain_;
+  // ゴールまでの距離がこのしきい値以下になった時にゴールに到達舌と判断する
+  const double goal_distance_threashold_;
   // 制御コマンド更新のためのタイマー
   rclcpp::TimerBase::SharedPtr timer_;
   // 一定時間ごとに刻まれるタイマーのコールバック
@@ -93,6 +97,8 @@ private:
   tf2_ros::Buffer buffer_;
   // tf(座標系解決のためのトピック)を受信するためのクラス
   tf2_ros::TransformListener listener_;
+  //　ゴールに到達したかを判定する関数
+  bool goal_reached() const;
 };
 
 }  // namespace braitenberg_vehicle
