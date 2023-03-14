@@ -40,7 +40,7 @@ public:
 private:
   // パラメータを取得するためのテンプレート関数、第一引数はパラメータ名、第二引数はデフォルト値
   template <typename T>
-  auto get_parameter(const std::string & name, const T & default_value) -> T
+  auto get_ros2_parameter(const std::string & name, const T & default_value) -> T
   {
     // 取得したいパラメータが宣言済みかを確認
     if (!has_parameter(name)) {
