@@ -15,6 +15,7 @@
 #include "braitenberg_vehicle/braitenberg_vehicle_controller.hpp"
 
 #include <limits>
+#include <rclcpp_components/register_node_macro.hpp>
 
 namespace braitenberg_vehicle
 {
@@ -53,13 +54,16 @@ BraitenbergVehicleController::~BraitenbergVehicleController() {}
 
 void BraitenbergVehicleController::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr scan)
 {
+  // クリティカルセクション開始
   mutex_.lock();
+  // クリティカルセクション終了
   mutex_.unlock();
 }
 
 void BraitenbergVehicleController::goal_pose_callback(
   const geometry_msgs::msg::PoseStamped::SharedPtr pose)
 {
+  // クリティカルセクション開始
   mutex_.lock();
   // 受信したゴール姿勢のframe_id(座標系の名前)が適切なものかを確認
   if (pose->header.frame_id == base_link_frame_id_) {
@@ -69,25 +73,31 @@ void BraitenbergVehicleController::goal_pose_callback(
     // 不適切な場合は、goal_pose_に無効値を表現するstd::nulloptをセット
     goal_pose_ = std::nullopt;
   }
+  // クリティカルセクション終了
   mutex_.unlock();
 }
 
 void BraitenbergVehicleController::timer_callback()
 {
+  // クリティカルセクション開始
   mutex_.lock();
   if (goal_pose_) {
-    twist_pub_->publish(motion_model_.get_twist(
-      // 左側の車輪には右側の仮想光センサの出力を入力
-      // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
-      emulate_light_sensor(
-        virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_ * -1),
-      // 右側の車輪には左側の仮想光センサの出力を入力
-      // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
-      emulate_light_sensor(
-        virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_)));
+    twist_pub_->publish(
+      // モーションモデルを計算して、速度司令を計算
+      motion_model_.get_twist(
+        // 左側の車輪には右側の仮想光センサの出力を入力
+        // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
+        emulate_light_sensor(
+          virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_ * -1),
+        // 右側の車輪には左側の仮想光センサの出力を入力
+        // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
+        emulate_light_sensor(
+          virtual_light_sensor_position_x_offset_, virtual_light_sensor_position_y_offset_)));
   } else {
+    // 有効なゴール指定がされていない場合、その場で停止
     twist_pub_->publish(geometry_msgs::msg::Twist());
   }
+  // クリティカルセクション終了
   mutex_.unlock();
 }
 
@@ -123,3 +133,6 @@ double BraitenbergVehicleController::emulate_light_sensor(double x_offset, doubl
   }
 }
 }  // namespace braitenberg_vehicle
+
+// braitenberg_vehicle::BraitenbergVehicleControllerクラスをコンポーネントとして登録
+RCLCPP_COMPONENTS_REGISTER_NODE(braitenberg_vehicle::BraitenbergVehicleController)
