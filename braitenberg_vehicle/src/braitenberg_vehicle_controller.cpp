@@ -14,8 +14,13 @@
 
 #include "braitenberg_vehicle/braitenberg_vehicle_controller.hpp"
 
+#include <algorithm>
 #include <limits>
 #include <rclcpp_components/register_node_macro.hpp>
+
+// tf2::doTransform関数をエラーなく実行するためにはこのヘッダが必要
+// これをincludeし忘れると実行時にクラッシュします。
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace braitenberg_vehicle
 {
@@ -74,8 +79,28 @@ void BraitenbergVehicleController::goal_pose_callback(
     // 適切な場合は、goal_pose_に受信したposeを代入
     goal_pose_ = pose->pose;
   } else {
-    // 不適切な場合は、goal_pose_に無効値を表現するstd::nulloptをセット
-    goal_pose_ = std::nullopt;
+    // 不適切な場合は、odom座標系に座標変換
+    try {
+      // 座標変換結果を格納する一時変数
+      geometry_msgs::msg::PoseStamped p;
+      // 座標変換を実行
+      tf2::doTransform(
+        // 第一引数は変換したい姿勢を入力、第二引数には変換結果を格納する姿勢を入力
+        *pose, p,
+        // 同次変換行列計算に必要な情報をtfのバッファから計算
+        // pose->header.frame_id(受信したゴール地点の座標系)-> odom_frame_id_(オドメトリ座標系)の相対座標系を計算
+        // 第三引数はいつの時点の座標変換を取得したいか、rclcpp::Time(0)とすると最新の相対座標系が計算される
+        // 第四引数はウェイトの最大時間、tfは分散座標系管理を行うためウェイトが短すぎると受信に失敗する可能性がある
+        buffer_.lookupTransform(
+          odom_frame_id_, pose->header.frame_id, rclcpp::Time(0), tf2::durationFromSec(1.0)));
+      goal_pose_ = p.pose;
+    }
+    // 座標変換が失敗したときの例外処理
+    catch (tf2::ExtrapolationException & ex) {
+      RCLCPP_ERROR(get_logger(), ex.what());
+      // 座標変換に失敗した場合、ゴール地点をキャンセル
+      goal_pose_ = std::nullopt;
+    }
   }
   // クリティカルセクション終了
   mutex_.unlock();
@@ -128,7 +153,7 @@ double BraitenbergVehicleController::emulate_light_sensor(double x_offset, doubl
       return 1;
     else {
       // センサの出力は距離に反比例する。
-      return 1 / distance;
+      return std::clamp(1 / distance, 0.0, 1.0);
       ;
     }
   } else {
