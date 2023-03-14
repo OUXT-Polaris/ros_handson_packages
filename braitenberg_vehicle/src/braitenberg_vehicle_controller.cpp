@@ -117,6 +117,14 @@ void BraitenbergVehicleController::timer_callback()
   // クリティカルセクション開始
   mutex_.lock();
   if (goal_pose_) {
+    if (goal_reached()) {
+      // 有効なゴール指定がされていない場合、その場で停止
+      twist_pub_->publish(geometry_msgs::msg::Twist());
+      goal_pose_ = std::nullopt;
+      // クリティカルセクション終了
+      mutex_.unlock();
+      return;
+    }
     // 座標変換結果を格納する一時変数
     geometry_msgs::msg::PoseStamped p;
     try {
@@ -151,6 +159,8 @@ void BraitenbergVehicleController::timer_callback()
       RCLCPP_ERROR(get_logger(), ex.what());
       // 座標変換に失敗した場合、その場で停止
       twist_pub_->publish(geometry_msgs::msg::Twist());
+      // クリティカルセクション終了
+      mutex_.unlock();
       return;
     }
   } else {
@@ -168,6 +178,9 @@ void BraitenbergVehicleController::timer_callback()
 double BraitenbergVehicleController::emulate_light_sensor(
   double x_offset, double y_offset, const geometry_msgs::msg::Point & goal_point) const
 {
+  if (goal_point.x < x_offset) {
+    return 0;
+  }
   // constexprをつけることで変数eはコンパイル時に計算され定数となるので実行時の計算コストを減らすことができる（https://cpprefjp.github.io/lang/cpp11/constexpr.html）
   // std::numeric_limits<double>::epsilon();はdouble型の計算機イプシロン（処理系が取り扱える浮動小数点の誤差幅）である（https://cpprefjp.github.io/reference/limits/numeric_limits/epsilon.html）
   // 浮動小数点型に対して一致を計算する場合には「==演算子」を用いてはならない、計算機イプシロンを考慮して計算する必要がある
@@ -200,11 +213,11 @@ bool BraitenbergVehicleController::goal_reached() const
         // 第一引数は変換したい姿勢を入力、第二引数には変換結果を格納する姿勢を入力
         goal_pose_.value(), p,
         // 同次変換行列計算に必要な情報をtfのバッファから計算
-        // base_link_frame_id_(ロボット座標系)->odom_frame_id_(オドメトリ座標系)の相対座標系を計算
+        // odom_frame_id_(オドメトリ座標系)->base_link_frame_id_(ロボット座標系)の相対座標系を計算
         // 第三引数はいつの時点の座標変換を取得したいか、rclcpp::Time(0)とすると最新の相対座標系が計算される
         // 第四引数はウェイトの最大時間、tfは分散座標系管理を行うためウェイトが短すぎると受信に失敗する可能性がある
         buffer_.lookupTransform(
-          odom_frame_id_, base_link_frame_id_, rclcpp::Time(0), tf2::durationFromSec(1.0)));
+          base_link_frame_id_, odom_frame_id_, rclcpp::Time(0), tf2::durationFromSec(1.0)));
       if (std::hypot(p.pose.position.x, p.pose.position.y) < goal_distance_threashold_) {
         return true;
       } else {
