@@ -15,6 +15,10 @@
 #ifndef BRAITENBERG_VEHICLE__BRAITENBERG_VEHICLE_CONTROLLER_HPP_
 #define BRAITENBERG_VEHICLE__BRAITENBERG_VEHICLE_CONTROLLER_HPP_
 
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+
 #include <braitenberg_vehicle/motion_model.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
@@ -68,6 +72,8 @@ private:
   std::optional<geometry_msgs::msg::Pose> goal_pose_;
   // ベースリンクのframe_idを記録するメンバ変数
   const std::string base_link_frame_id_;
+  // オドメトリのframe_idを記録するメンバ変数
+  const std::string odom_frame_id_;
   // 仮想光センサの取り付け位置を表すメンバ変数
   const double virtual_light_sensor_position_x_offset_;
   // 仮想光センサの取り付け位置を表すメンバ変数
@@ -82,6 +88,10 @@ private:
   MotionModel motion_model_;
   // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数
   double emulate_light_sensor(double x_offset, double y_offset) const;
+  // tf(座標系解決のためのトピック)のデータを一体時間バッファするためのクラス
+  tf2_ros::Buffer buffer_;
+  // tf(座標系解決のためのトピック)を受信するためのクラス
+  tf2_ros::TransformListener listener_;
 };
 
 }  // namespace braitenberg_vehicle

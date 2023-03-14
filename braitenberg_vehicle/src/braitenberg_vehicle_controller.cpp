@@ -24,6 +24,8 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
 : rclcpp::Node("braitenberg_vehicle_controller", options),
   // "base_link_frame_id"パラメータを読み込み、メンバ変数にセット
   base_link_frame_id_(get_ros2_parameter("base_link_frame_id", std::string("base_link"))),
+  // "odom_frame_id"パラメータを読み込み、メンバ変数にセット
+  odom_frame_id_(get_ros2_parameter("odom_frame_id", std::string("odom"))),
   //　パラメータから仮想光センサの取り付け位置を読み込み
   virtual_light_sensor_position_x_offset_(
     get_ros2_parameter("virtual_light_sensor_position_x_offset", 0.1)),
@@ -33,7 +35,9 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
     // "wheel_radius"パラメータを読み込みメンバ変数にセット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
     get_ros2_parameter("wheel_radius", 0.033),
     // "wheel_base"パラメータを読み込みメンバ変数二セット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
-    get_ros2_parameter("wheel_base", 0.16))
+    get_ros2_parameter("wheel_base", 0.16)),
+  buffer_(get_clock()),
+  listener_(buffer_)
 {
   // publisherを作る関数、テンプレート引数はメッセージ型、第一引数はtopic名、第二引数は送信バッファサイズ
   twist_pub_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
@@ -66,7 +70,7 @@ void BraitenbergVehicleController::goal_pose_callback(
   // クリティカルセクション開始
   mutex_.lock();
   // 受信したゴール姿勢のframe_id(座標系の名前)が適切なものかを確認
-  if (pose->header.frame_id == base_link_frame_id_) {
+  if (pose->header.frame_id == odom_frame_id_) {
     // 適切な場合は、goal_pose_に受信したposeを代入
     goal_pose_ = pose->pose;
   } else {
