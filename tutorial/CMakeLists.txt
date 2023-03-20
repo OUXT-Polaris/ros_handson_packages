@@ -18,7 +18,7 @@ ament_auto_add_library(subscribe src/subscribe.cpp)
 # 共有ライブラリ「subscribe」にある「tutorial::Subscribe」クラスはコンポーネントであることをcolconに伝える
 rclcpp_components_register_nodes(subscribe "tutorial::Subscribe")
 # 共有ライブラリ「publish」をコンパイル、その際依存しているパッケージに含まれるライブラリ等を全てリンクする
-# 共有ライブラリ「publish」はsrc/subscribe.cppの中身よりコンパイルされる
+# 共有ライブラリ「publish」はsrc/publish.cppの中身よりコンパイルされる
 ament_auto_add_library(publish src/publish.cpp)
 # 共有ライブラリ「publish」にある「tutorial::Publish」クラスはコンポーネントであることをcolconに伝える
 rclcpp_components_register_nodes(publish "tutorial::Publish")
