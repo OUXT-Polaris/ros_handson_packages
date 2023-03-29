@@ -4,11 +4,11 @@
   <node_container pkg="rclcpp_components" exec="component_container_mt" name="controller_container" namespace="controller" args="">
     <composable_node pkg="braitenberg_vehicle" plugin="braitenberg_vehicle::BraitenbergVehicleController" name="controller_node">
       <param name="use_sim_time" value="$(var use_sim_time)"/>
-      <param name="virtual_light_sensor_position_y_offset" value="5.0"/>
+      <param name="virtual_light_sensor_position_y_offset" value="2.1"/>
       <param name="virtual_light_sensor_position_x_offset" value="0.2"/>
-      <param name="goal_distance_threashold" value="0.3"/>
-      <param name="virtual_light_sensor_gain" value="1000.0"/>
-      <param name="virtual_light_sensor_viewing_angle" value="3.14159"/>
+      <param name="virtual_light_sensor_gain" value="500.0"/>
+      <param name="virtual_light_sensor_viewing_angle" value="3.1415"/>
+      <param name="virtual_light_sensor_angle_offset" value="0.1"/>
     </composable_node>
   </node_container>
 </launch>

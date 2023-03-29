@@ -36,6 +36,7 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
     get_ros2_parameter("virtual_light_sensor_position_x_offset", 0.1)),
   virtual_light_sensor_position_y_offset_(
     get_ros2_parameter("virtual_light_sensor_position_y_offset", 3.0)),
+  virtual_light_sensor_angle_offset_(get_ros2_parameter("virtual_light_sensor_angle_offset", 0.5)),
   // パラメータから仮想光センサ出力をモータ回転数に変換するときの係数を読み込み
   virtual_light_sensor_gain_(get_ros2_parameter("virtual_light_sensor_gain", 100.0)),
   virtual_light_sensor_viewing_angle_(
@@ -61,7 +62,7 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
   // std::chronoに登録されたリテラルを用いて時間を人間的な書式で記載できるようにする
   using namespace std::chrono_literals;
   // BraitenbergVehicleController::timer_callback関数を1msに一回実行する関数として登録
-  timer_ = create_wall_timer(1ms, [this]() { timer_callback(); });
+  timer_ = create_wall_timer(10ms, [this]() { timer_callback(); });
 }
 
 BraitenbergVehicleController::~BraitenbergVehicleController() {}
@@ -78,6 +79,7 @@ void BraitenbergVehicleController::scan_callback(
 void BraitenbergVehicleController::goal_pose_callback(
   const geometry_msgs::msg::PoseStamped::SharedPtr pose)
 {
+  RCLCPP_INFO_STREAM(get_logger(), "recieve goal pose\n" + geometry_msgs::msg::to_yaml(*pose));
   // クリティカルセクション開始
   mutex_.lock();
   // 受信したゴール姿勢のframe_id(座標系の名前)が適切なものかを確認
@@ -138,13 +140,13 @@ void BraitenbergVehicleController::timer_callback()
           virtual_light_sensor_gain_ * emulate_light_sensor(
                                          virtual_light_sensor_position_x_offset_,
                                          virtual_light_sensor_position_y_offset_ * -1,
-                                         p.pose.position),
+                                         virtual_light_sensor_angle_offset_ * -1, p.pose.position),
           // 右側の車輪には左側の仮想光センサの出力を入力
           // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
           virtual_light_sensor_gain_ * emulate_light_sensor(
                                          virtual_light_sensor_position_x_offset_,
                                          virtual_light_sensor_position_y_offset_,
-                                         p.pose.position)));
+                                         virtual_light_sensor_angle_offset_, p.pose.position)));
     }
     // 座標変換が失敗したときの例外処理
     catch (tf2::ExtrapolationException & ex) {
@@ -164,16 +166,21 @@ void BraitenbergVehicleController::timer_callback()
 }
 
 // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数
+// 最小値は0,最大値は1
 // 第一引数のx_offsetはbase_linkからの仮想光センサのx座標
 // 第二引数のy_offsetはbase_linkからの仮想光センサのy座標
-// 第三引数のgoal_pointはbase_linkでみたときのゴール地点の座標
+// 第三引数のangle_ofsetはbase_linkから見た時仮想光センサの角度のズレ
+// 第四引数のgoal_pointはbase_linkでみたときのゴール地点の座標
 double BraitenbergVehicleController::emulate_light_sensor(
-  double x_offset, double y_offset, const geometry_msgs::msg::Point & goal_point) const
+  double x_offset, double y_offset, const double angle_offset,
+  const geometry_msgs::msg::Point & goal_point) const
 {
+  // arc tangentを使うときはatan2を使いましょう、ロボットでstd::atanを使うと突然解が飛んで事故ることがあります。
+  const auto theta = std::atan2(goal_point.y - y_offset, goal_point.x - x_offset);
   // goal_pointが視界に入っているかを判定、入っていない場合は0を出力
   if (
-    std::abs(std::atan2(goal_point.y - y_offset, goal_point.x - x_offset)) >=
-    virtual_light_sensor_viewing_angle_ * 0.5) {
+    theta >= (angle_offset + virtual_light_sensor_viewing_angle_ * 0.5) ||
+    (angle_offset - virtual_light_sensor_viewing_angle_ * 0.5) >= theta) {
     return 0;
   }
   // constexprをつけることで変数eはコンパイル時に計算され定数となるので実行時の計算コストを減らすことができる（https://cpprefjp.github.io/lang/cpp11/constexpr.html）
@@ -190,9 +197,9 @@ double BraitenbergVehicleController::emulate_light_sensor(
       // 距離の絶対値が計算機イプシロンより小さい、つまりdistance = 0.0の場合
       std::abs(distance) <= e)
     // ゼロ割を回避しつつセンサの出力値を最大にしたいので1を返す
-    return 1;
+    return 1.0;
   else {
-    // センサの出力は距離に反比例する。
+    // センサの出力は距離の二乗に反比例する。
     return std::clamp(1 / (distance * distance), 0.0, 1.0);
   }
 }

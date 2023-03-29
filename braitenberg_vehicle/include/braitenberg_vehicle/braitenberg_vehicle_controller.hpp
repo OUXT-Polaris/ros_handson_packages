@@ -78,6 +78,8 @@ private:
   const double virtual_light_sensor_position_x_offset_;
   // 仮想光センサの取り付け位置を表すメンバ変数
   const double virtual_light_sensor_position_y_offset_;
+  // 仮想光センサが正面から何度ずれて設置されているか(rad)
+  const double virtual_light_sensor_angle_offset_;
   // 仮想光センサ出力をモータ回転数に変換するときの係数
   const double virtual_light_sensor_gain_;
   // 仮想光センサの視角（rad）
@@ -92,7 +94,8 @@ private:
   MotionModel motion_model_;
   // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数
   double emulate_light_sensor(
-    double x_offset, double y_offset, const geometry_msgs::msg::Point & goal_point) const;
+    double x_offset, double y_offset, const double angle_offset,
+    const geometry_msgs::msg::Point & goal_point) const;
   // tf(座標系解決のためのトピック)のデータを一体時間バッファするためのクラス
   tf2_ros::Buffer buffer_;
   // tf(座標系解決のためのトピック)を受信するためのクラス
