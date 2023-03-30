@@ -90,7 +90,7 @@ void BraitenbergVehicleController::scan_callback(const sensor_msgs::msg::LaserSc
       tf2::doTransform(
         p, p,
         buffer_.lookupTransform(
-          p.header.frame_id, base_link_frame_id_, rclcpp::Time(0), tf2::durationFromSec(1.0)));
+          base_link_frame_id_, p.header.frame_id, rclcpp::Time(0), tf2::durationFromSec(1.0)));
       scan_points_.emplace_back(p);
     }
     // 座標変換が失敗したときの例外処理
@@ -195,24 +195,25 @@ void BraitenbergVehicleController::timer_callback()
 
 // LaserScan結果を仮想超音波センサ出力に変換する関数
 // 最小値は-1,最大値は1
-double BraitenbergVehicleController::emulate_ultrasonic_sensor(
-  double x_offset, double y_offset, double angle_offset)
+double BraitenbergVehicleController::emulate_ultrasonic_sensor(double x_offset, double y_offset)
 {
-  // auto filter_scan = [this](float range_min, float range_max) {
-  //   sensor_msgs::msg::LaserScan filtered;
-  //   filtered = scan_;
-  //   filtered.range_max = range_max;
-  //   filtered.range_min = range_min;
-  //   filtered.ranges.clear();
-  //   filtered.intensities.clear();
-  //   for (size_t i = 0; i < scan_.ranges.size(); i++) {
-  //     const auto angle = i * scan_.angle_increment + scan_.angle_min;
-  //     if (range_min <= angle && angle <= range_min) {
-  //       filtered.ranges.emplace_back(scan_.ranges[i]);
-  //     }
-  //   }
-  //   return filtered;
-  // };
+  auto filter_scan = [this](float angle_min, float angle_max, float range_max) {
+    std::vector<geometry_msgs::msg::Point> filtered_points;
+    for (const auto point : scan_points_) {
+      double angle = std::atan2(point.point.y - y_offset, point.point.x - x_offset);
+      if (
+        angle_min <= angle && angle <= angle_max &&
+        std::hypot(point.point.x - x_offset, point.point.y - y_offset, point.point.z) <=
+          range_max) {
+        geometry_msgs::msg::Point p;
+        p.x = point.point.x - x_offset;
+        p.y = point.point.y - y_offset;
+        p.z = point.point.z;
+        filtered_points.emplace_back(p);
+      }
+    }
+    return filtered_points;
+  };
 }
 
 // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数

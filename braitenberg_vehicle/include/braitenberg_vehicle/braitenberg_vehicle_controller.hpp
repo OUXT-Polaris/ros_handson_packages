@@ -100,7 +100,7 @@ private:
     double x_offset, double y_offset, double angle_offset,
     const geometry_msgs::msg::Point & goal_point) const;
   // LaserScan結果を仮想超音波センサ出力に変換する関数
-  double emulate_ultrasonic_sensor(double x_offset, double y_offset, double angle_offset);
+  double emulate_ultrasonic_sensor(double x_offset, double y_offset);
   // tf(座標系解決のためのトピック)のデータを一体時間バッファするためのクラス
   tf2_ros::Buffer buffer_;
   // tf(座標系解決のためのトピック)を受信するためのクラス
