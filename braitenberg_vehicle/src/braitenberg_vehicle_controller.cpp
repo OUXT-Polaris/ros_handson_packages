@@ -67,11 +67,39 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
 
 BraitenbergVehicleController::~BraitenbergVehicleController() {}
 
-void BraitenbergVehicleController::scan_callback(
-  const sensor_msgs::msg::LaserScan::SharedPtr /*scan*/)
+void BraitenbergVehicleController::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr scan)
 {
   // クリティカルセクション開始
   mutex_.lock();
+  scan_points_.clear();
+  size_t index = 0;
+  // 計測された各点に対して座標変換を実行
+  for (const auto range : scan->ranges) {
+    geometry_msgs::msg::PointStamped p;
+    p.header = scan->header;
+    // 各計測点のタイムスタンプを取得
+    p.header.stamp = static_cast<rclcpp::Time>(p.header.stamp) +
+                     rclcpp::Duration(std::chrono::nanoseconds(
+                       static_cast<int>(std::round(scan->time_increment * std::pow(10, 9)))));
+    // 各計測点の角度を計算
+    double angle = scan->angle_min + index * scan->angle_increment;
+    // 計測点のX座標、Y座標を計算
+    p.point.x = range * std::sin(angle);
+    p.point.y = range * std::cos(angle);
+    try {
+      tf2::doTransform(
+        p, p,
+        buffer_.lookupTransform(
+          p.header.frame_id, base_link_frame_id_, rclcpp::Time(0), tf2::durationFromSec(1.0)));
+      scan_points_.emplace_back(p);
+    }
+    // 座標変換が失敗したときの例外処理
+    catch (tf2::ExtrapolationException & ex) {
+      RCLCPP_ERROR(get_logger(), ex.what());
+    }
+    // indexをインクリメント
+    index++;
+  }
   // クリティカルセクション終了
   mutex_.unlock();
 }
@@ -165,6 +193,28 @@ void BraitenbergVehicleController::timer_callback()
   mutex_.unlock();
 }
 
+// LaserScan結果を仮想超音波センサ出力に変換する関数
+// 最小値は-1,最大値は1
+double BraitenbergVehicleController::emulate_ultrasonic_sensor(
+  double x_offset, double y_offset, double angle_offset)
+{
+  // auto filter_scan = [this](float range_min, float range_max) {
+  //   sensor_msgs::msg::LaserScan filtered;
+  //   filtered = scan_;
+  //   filtered.range_max = range_max;
+  //   filtered.range_min = range_min;
+  //   filtered.ranges.clear();
+  //   filtered.intensities.clear();
+  //   for (size_t i = 0; i < scan_.ranges.size(); i++) {
+  //     const auto angle = i * scan_.angle_increment + scan_.angle_min;
+  //     if (range_min <= angle && angle <= range_min) {
+  //       filtered.ranges.emplace_back(scan_.ranges[i]);
+  //     }
+  //   }
+  //   return filtered;
+  // };
+}
+
 // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数
 // 最小値は0,最大値は1
 // 第一引数のx_offsetはbase_linkからの仮想光センサのx座標
@@ -172,7 +222,7 @@ void BraitenbergVehicleController::timer_callback()
 // 第三引数のangle_ofsetはbase_linkから見た時仮想光センサの角度のズレ
 // 第四引数のgoal_pointはbase_linkでみたときのゴール地点の座標
 double BraitenbergVehicleController::emulate_light_sensor(
-  double x_offset, double y_offset, const double angle_offset,
+  double x_offset, double y_offset, double angle_offset,
   const geometry_msgs::msg::Point & goal_point) const
 {
   // arc tangentを使うときはatan2を使いましょう、ロボットでstd::atanを使うと突然解が飛んで事故ることがあります。

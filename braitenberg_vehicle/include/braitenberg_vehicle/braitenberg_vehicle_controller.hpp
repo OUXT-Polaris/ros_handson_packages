@@ -20,6 +20,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <braitenberg_vehicle/motion_model.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <mutex>
@@ -70,6 +71,8 @@ private:
   // ゴール地点受信前の状態を表現するためstd::optionalを用いて無効値を表現
   // https://cpprefjp.github.io/reference/optional/optional.html
   std::optional<geometry_msgs::msg::PoseStamped> goal_pose_;
+  // LaserScanで得られた点群情報を保存するための変数
+  std::vector<geometry_msgs::msg::PointStamped> scan_points_;
   // ベースリンクのframe_idを記録するメンバ変数
   const std::string base_link_frame_id_;
   // オドメトリのframe_idを記録するメンバ変数
@@ -94,8 +97,10 @@ private:
   MotionModel motion_model_;
   // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数
   double emulate_light_sensor(
-    double x_offset, double y_offset, const double angle_offset,
+    double x_offset, double y_offset, double angle_offset,
     const geometry_msgs::msg::Point & goal_point) const;
+  // LaserScan結果を仮想超音波センサ出力に変換する関数
+  double emulate_ultrasonic_sensor(double x_offset, double y_offset, double angle_offset);
   // tf(座標系解決のためのトピック)のデータを一体時間バッファするためのクラス
   tf2_ros::Buffer buffer_;
   // tf(座標系解決のためのトピック)を受信するためのクラス
