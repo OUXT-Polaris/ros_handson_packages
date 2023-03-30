@@ -39,8 +39,21 @@ BraitenbergVehicleController::BraitenbergVehicleController(const rclcpp::NodeOpt
   virtual_light_sensor_angle_offset_(get_ros2_parameter("virtual_light_sensor_angle_offset", 0.5)),
   // パラメータから仮想光センサ出力をモータ回転数に変換するときの係数を読み込み
   virtual_light_sensor_gain_(get_ros2_parameter("virtual_light_sensor_gain", 100.0)),
+  // パラメータから仮想光センサの視野角を読み込み
   virtual_light_sensor_viewing_angle_(
     get_ros2_parameter("virtual_light_sensor_viewing_angle", M_PI)),
+  //　パラメータから仮想超音波センサの計測距離を読み込み
+  virtual_ultrasonic_sensor_range_(get_ros2_parameter("virtual_ultrasonic_sensor_range", 1.0)),
+  //　パラメータから仮想超音波センサの取り付け位置を読み込み
+  virtual_ultrasonic_sensor_position_x_offset_(
+    get_ros2_parameter("virtual_ultrasonic_sensor_position_x_offset", 0.1)),
+  virtual_ultrasonic_sensor_position_y_offset_(
+    get_ros2_parameter("virtual_ultrasonic_sensor_position_y_offset", 0.1)),
+  // パラメータから仮想超音波センサの視野角を読み込み
+  virtual_ultrasonic_viewing_angle_(
+    get_ros2_parameter("virtual_ultrasonic_viewing_angle", 0.523599)),
+  // パラメータから仮想超音波センサ出力をモータ回転数に変換するときの係数を読み込み
+  virtual_ultrasonic_sensor_gain_(get_ros2_parameter("virtual_ultrasonic_sensor_gain", 100.0)),
   // motiom_modelクラスを初期化
   motion_model_(
     // "wheel_radius"パラメータを読み込みメンバ変数にセット、デフォルト値はTurtlebot3 burgerの.xacroファイルより計算
@@ -168,13 +181,19 @@ void BraitenbergVehicleController::timer_callback()
           virtual_light_sensor_gain_ * emulate_light_sensor(
                                          virtual_light_sensor_position_x_offset_,
                                          virtual_light_sensor_position_y_offset_ * -1,
-                                         virtual_light_sensor_angle_offset_ * -1, p.pose.position),
+                                         virtual_light_sensor_angle_offset_ * -1, p.pose.position) -
+            virtual_ultrasonic_sensor_gain_ * emulate_ultrasonic_sensor(
+                                                virtual_ultrasonic_sensor_position_x_offset_,
+                                                virtual_ultrasonic_sensor_position_x_offset_ * -1),
           // 右側の車輪には左側の仮想光センサの出力を入力
           // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
           virtual_light_sensor_gain_ * emulate_light_sensor(
                                          virtual_light_sensor_position_x_offset_,
                                          virtual_light_sensor_position_y_offset_,
-                                         virtual_light_sensor_angle_offset_, p.pose.position)));
+                                         virtual_light_sensor_angle_offset_, p.pose.position) -
+            virtual_ultrasonic_sensor_gain_ * emulate_ultrasonic_sensor(
+                                                virtual_ultrasonic_sensor_position_x_offset_,
+                                                virtual_ultrasonic_sensor_position_x_offset_)));
     }
     // 座標変換が失敗したときの例外処理
     catch (tf2::ExtrapolationException & ex) {
@@ -194,26 +213,53 @@ void BraitenbergVehicleController::timer_callback()
 }
 
 // LaserScan結果を仮想超音波センサ出力に変換する関数
-// 最小値は-1,最大値は1
-double BraitenbergVehicleController::emulate_ultrasonic_sensor(double x_offset, double y_offset)
+// 最小値は0,最大値は1
+double BraitenbergVehicleController::emulate_ultrasonic_sensor(
+  double x_offset, double y_offset) const
 {
-  auto filter_scan = [this](float angle_min, float angle_max, float range_max) {
+  // 点群をフィルタするラムダ式
+  auto filter_scan = [this, x_offset, y_offset](float angle_min, float angle_max, float range_max) {
     std::vector<geometry_msgs::msg::Point> filtered_points;
-    for (const auto point : scan_points_) {
-      double angle = std::atan2(point.point.y - y_offset, point.point.x - x_offset);
+    for (const auto & point : scan_points_) {
+      // 仮想超音波センサから見た点に座標変換
+      geometry_msgs::msg::Point p;
+      p.x = point.point.x - x_offset;
+      p.y = point.point.y - y_offset;
+      p.z = point.point.z;
+      // 仮想超音波センサから見た角度を計算
+      double angle = std::atan2(p.y, p.x);
       if (
+        // 角度の上限加減範囲に入っているかを検証
         angle_min <= angle && angle <= angle_max &&
-        std::hypot(point.point.x - x_offset, point.point.y - y_offset, point.point.z) <=
-          range_max) {
-        geometry_msgs::msg::Point p;
-        p.x = point.point.x - x_offset;
-        p.y = point.point.y - y_offset;
-        p.z = point.point.z;
+        // 距離が範囲内に入っているかを検証
+        std::hypot(p.x, p.y, p.z) <= range_max) {
+        // 角度、距離が両方範囲内であれば点群を残す
         filtered_points.emplace_back(p);
       }
     }
     return filtered_points;
   };
+  // 点群をフィルタ
+  const auto filtered = filter_scan(
+    -1 * virtual_ultrasonic_viewing_angle_, virtual_ultrasonic_viewing_angle_,
+    virtual_ultrasonic_sensor_range_);
+  // フィルタした結果何も残らなかった場合0を出力
+  if (filtered.empty()) {
+    return 0;
+  }
+  // フィルタした結果点群が残った時は最近傍点との距離から出力を計算
+  else {
+    // 距離情報を保管するstd::vector
+    std::vector<double> distance;
+    // 点群情報から距離情報を計算
+    std::transform(
+      filtered.begin(), filtered.end(), std::back_inserter(distance),
+      [](const auto p) { return std::hypot(p.x, p.y, p.z); });
+    // 最も小さい距離を計算
+    double min_distance = *std::min_element(distance.begin(), distance.end());
+    // 距離の二乗からセンサ出力を計算、1を超えている場合は1を出力
+    return std::clamp(1 / (min_distance * min_distance), 0.0, 1.0);
+  }
 }
 
 // ゴール地点を光源として扱うための仮想光センサ入力を計算するための関数

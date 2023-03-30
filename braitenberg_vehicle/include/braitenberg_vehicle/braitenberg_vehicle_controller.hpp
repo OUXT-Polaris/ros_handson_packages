@@ -73,13 +73,13 @@ private:
   std::optional<geometry_msgs::msg::PoseStamped> goal_pose_;
   // LaserScanで得られた点群情報を保存するための変数
   std::vector<geometry_msgs::msg::PointStamped> scan_points_;
-  // ベースリンクのframe_idを記録するメンバ変数
+  // ベースリンクのframe_id
   const std::string base_link_frame_id_;
-  // オドメトリのframe_idを記録するメンバ変数
+  // オドメトリのframe_id
   const std::string odom_frame_id_;
-  // 仮想光センサの取り付け位置を表すメンバ変数
+  // 仮想光センサの取り付け位置のX座標
   const double virtual_light_sensor_position_x_offset_;
-  // 仮想光センサの取り付け位置を表すメンバ変数
+  // 仮想光センサの取り付け位置のY座標
   const double virtual_light_sensor_position_y_offset_;
   // 仮想光センサが正面から何度ずれて設置されているか(rad)
   const double virtual_light_sensor_angle_offset_;
@@ -87,6 +87,16 @@ private:
   const double virtual_light_sensor_gain_;
   // 仮想光センサの視角（rad）
   const double virtual_light_sensor_viewing_angle_;
+  // 仮想超音波センサのレンジ
+  const double virtual_ultrasonic_sensor_range_;
+  // 仮想超音波センサの取り付け位置のX座標
+  const double virtual_ultrasonic_sensor_position_x_offset_;
+  // 仮想超音波センサの取り付け位置のY座標
+  const double virtual_ultrasonic_sensor_position_y_offset_;
+  // 仮想超音波センサの視野角（rad）
+  const double virtual_ultrasonic_viewing_angle_;
+  // 仮想超音波センサ出力をモータ回転数に変換するときの係数
+  const double virtual_ultrasonic_sensor_gain_;
   // 制御コマンド更新のためのタイマー
   rclcpp::TimerBase::SharedPtr timer_;
   // 一定時間ごとに刻まれるタイマーのコールバック
@@ -100,7 +110,7 @@ private:
     double x_offset, double y_offset, double angle_offset,
     const geometry_msgs::msg::Point & goal_point) const;
   // LaserScan結果を仮想超音波センサ出力に変換する関数
-  double emulate_ultrasonic_sensor(double x_offset, double y_offset);
+  double emulate_ultrasonic_sensor(double x_offset, double y_offset) const;
   // tf(座標系解決のためのトピック)のデータを一体時間バッファするためのクラス
   tf2_ros::Buffer buffer_;
   // tf(座標系解決のためのトピック)を受信するためのクラス
