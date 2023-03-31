@@ -3,6 +3,7 @@
   <!-- component container(動的にノードを載せられるExecutor)を用意 -->
   <node_container pkg="rclcpp_components" exec="component_container_mt" name="controller_container" namespace="controller" args="">
     <composable_node pkg="braitenberg_vehicle" plugin="braitenberg_vehicle::BraitenbergVehicleController" name="controller_node">
+      <!-- paramタグを使用してパラメータをセット -->
       <param name="use_sim_time" value="$(var use_sim_time)"/>
       <param name="virtual_light_sensor_position_y_offset" value="2.1"/>
       <param name="virtual_light_sensor_position_x_offset" value="0.2"/>
@@ -14,10 +15,12 @@
       <param name="virtual_ultrasonic_sensor_gain" value="100.0"/>
       <param name="virtual_ultrasonic_sensor_range" value="0.5"/>
       <param name="virtual_ultrasonic_viewing_angle" value="0.26"/>
+      <!-- remapタグを使用することで本来このノードは/goal_poseトピックを読むのを/move_base_simple/goalに読み替える -->
       <remap from="/goal_pose" to="/move_base_simple/goal"/>
     </composable_node>
   </node_container>
 
+  <!-- rvizはここにはcomponent_containerには載せられないので単独ノードとして用意 -->
   <node pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share braitenberg_vehicle)/config/braitenberg_vehicle.rviz">
   </node>  
 </launch>
