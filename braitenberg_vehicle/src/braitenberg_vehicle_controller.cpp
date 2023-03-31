@@ -182,18 +182,21 @@ void BraitenbergVehicleController::timer_callback()
                                          virtual_light_sensor_position_x_offset_,
                                          virtual_light_sensor_position_y_offset_ * -1,
                                          virtual_light_sensor_angle_offset_ * -1, p.pose.position) -
+            // 左側の車輪には左側の仮想超音波センサの出力を入力
             virtual_ultrasonic_sensor_gain_ * emulate_ultrasonic_sensor(
                                                 virtual_ultrasonic_sensor_position_x_offset_,
-                                                virtual_ultrasonic_sensor_position_x_offset_ * -1),
+                                                virtual_ultrasonic_sensor_position_y_offset_),
           // 右側の車輪には左側の仮想光センサの出力を入力
           // ROSの座標系は前方がX軸、左がY軸、上がZ軸の正方向
           virtual_light_sensor_gain_ * emulate_light_sensor(
                                          virtual_light_sensor_position_x_offset_,
                                          virtual_light_sensor_position_y_offset_,
                                          virtual_light_sensor_angle_offset_, p.pose.position) -
-            virtual_ultrasonic_sensor_gain_ * emulate_ultrasonic_sensor(
-                                                virtual_ultrasonic_sensor_position_x_offset_,
-                                                virtual_ultrasonic_sensor_position_x_offset_)));
+            // 左側の車輪には右側の仮想超音波センサの出力を入力
+            virtual_ultrasonic_sensor_gain_ *
+              emulate_ultrasonic_sensor(
+                virtual_ultrasonic_sensor_position_x_offset_,
+                virtual_ultrasonic_sensor_position_y_offset_ * -1)));
     }
     // 座標変換が失敗したときの例外処理
     catch (tf2::ExtrapolationException & ex) {
