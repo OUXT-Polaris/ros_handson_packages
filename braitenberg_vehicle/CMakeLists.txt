@@ -24,6 +24,7 @@ rclcpp_components_register_nodes(braitenberg_vehicle_controller
 # launchファイルをインストール（ament_package_indexが探せる場所に置く）
 install(DIRECTORY
   launch
+  config
   DESTINATION share/${PROJECT_NAME}/
 )
 
