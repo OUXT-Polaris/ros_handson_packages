@@ -10,10 +10,10 @@
       <param name="virtual_light_sensor_viewing_angle" value="3.1415"/>
       <param name="virtual_light_sensor_angle_offset" value="0.1"/>
       <param name="virtual_ultrasonic_sensor_position_x_offset" value="0.05"/>
-      <param name="virtual_ultrasonic_sensor_position_y_offset" value="0.1"/>
+      <param name="virtual_ultrasonic_sensor_position_y_offset" value="0.0"/>
       <param name="virtual_ultrasonic_sensor_gain" value="100.0"/>
-      <param name="virtual_ultrasonic_sensor_range" value="0.3"/>
-      <param name="virtual_ultrasonic_viewing_angle" value="0.13"/>
+      <param name="virtual_ultrasonic_sensor_range" value="0.5"/>
+      <param name="virtual_ultrasonic_viewing_angle" value="0.26"/>
     </composable_node>
   </node_container>
 </launch>

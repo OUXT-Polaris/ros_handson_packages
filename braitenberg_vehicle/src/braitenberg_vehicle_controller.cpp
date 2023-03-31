@@ -244,7 +244,7 @@ double BraitenbergVehicleController::emulate_ultrasonic_sensor(
   };
   // 点群をフィルタ
   const auto filtered = filter_scan(
-    -1 * virtual_ultrasonic_viewing_angle_, virtual_ultrasonic_viewing_angle_,
+    -0.5 * virtual_ultrasonic_viewing_angle_, 0.5 * virtual_ultrasonic_viewing_angle_,
     virtual_ultrasonic_sensor_range_);
   // フィルタした結果何も残らなかった場合0を出力
   if (filtered.empty()) {
