@@ -23,7 +23,7 @@
 namespace tutorial
 {
 
-// rclcpp::Nodeを継承することでROS2ノード実装に必要な関数をかんたんに用意することができる。
+// rclcpp::Nodeを継承することでROS2ノード実装に必要な関数を容易に用意することができる。
 class Subscribe : public rclcpp::Node
 {
 public:
