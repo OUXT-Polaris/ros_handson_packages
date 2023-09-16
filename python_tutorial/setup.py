@@ -1,5 +1,8 @@
+# setuptoolsのfind_packages関数、setup関数を使えるようにする
 from setuptools import find_packages, setup
+# osパッケージに含まれる関数群を使用可能にする
 import os
+# globパッケージからglob関数を使用可能にする
 from glob import glob
 
 package_name = 'python_tutorial'
