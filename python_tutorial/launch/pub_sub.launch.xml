@@ -1,0 +1,4 @@
+<launch>
+  <node name="publish" pkg="python_tutorial" exec="publish"/>
+  <node name="subscribe" pkg="python_tutorial" exec="subscribe"/>
+</launch>
