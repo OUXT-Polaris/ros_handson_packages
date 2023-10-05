@@ -1,0 +1,29 @@
+[package]
+# パッケージ名
+name = "rust_tutorial"
+
+# パッケージバージョン
+version = "0.1.0"
+
+# 使用するRustバージョン
+edition = "2021"
+
+[dependencies]
+# Rust向けROS2バインディングクレート
+safe_drive = "0.2"
+
+# ROS2パラメータ取得ライブラリ
+ros2_rust_util = {git = "https://github.com/TakanoTaiga/ros2_rust_util.git"}
+
+# 今回使用するメッセージ
+std_msgs = {path = "/tmp/.msg/std_msgs"}
+
+[package.metadata.ros]
+# 今回使用するメッセージ
+msg = ["std_msgs"]
+
+# メッセージ生成ディレクトリ
+msg_dir = "/tmp/.msg/"
+
+# safe_drive バージョン(dependenciesに記載したものと揃える)
+safe_drive_version = "0.2"
